@@ -24,7 +24,7 @@ ChatApp is a modern, production-ready real-time chat application built with Reac
 - Typing indicators showing when other users are composing messages
 - Message reactions with emoji picker
 - Profile customization (username, display name)
-- Avatar upload and management via Firebase Storage
+- Avatar upload with automatic compression (base64 storage in Firestore)
 - Dark/light mode toggle with localStorage persistence
 - Fully responsive design (mobile, tablet, desktop)
 - Smooth animations and transitions
@@ -53,8 +53,7 @@ ChatApp is a modern, production-ready real-time chat application built with Reac
 
 ### Backend
 - **Firebase Authentication** - User authentication
-- **Cloud Firestore** - Real-time database
-- **Firebase Storage** - File/avatar storage
+- **Cloud Firestore** - Real-time database and base64 avatar storage
 - **Firebase Hosting** - Deployment (ready)
 
 ## Project Structure
@@ -95,7 +94,7 @@ client/
 
 ### User
 - id, email, username, displayName
-- avatarUrl (optional)
+- avatarUrl (optional, stored as compressed base64 string, max 50KB)
 - status (online/offline/away)
 - lastSeen, createdAt timestamps
 
@@ -160,6 +159,10 @@ The app requires three environment variables (already configured):
 - Responsive UI for all screen sizes
 - Message reactions and typing indicators
 - Read receipts and online status
+- **Updated avatar storage to use base64 compression** (no Firebase Storage billing required)
+  - Avatars automatically compressed to max 50KB
+  - Images resized to 200x200px for optimal performance
+  - Stored directly in Firestore user documents
 
 ## Next Steps (Future Enhancements)
 - Push notifications using Firebase Cloud Messaging
