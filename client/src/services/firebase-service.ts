@@ -28,8 +28,7 @@ import {
   limit,
   type Unsubscribe,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { auth, db, storage } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import type { User, Conversation, Message } from '@shared/schema';
 
 // Helper to convert Firestore timestamp to number
@@ -38,6 +37,61 @@ const timestampToNumber = (timestamp: any): number => {
     return timestamp.toMillis();
   }
   return timestamp || Date.now();
+};
+
+// Helper to compress and convert image to base64
+const compressImageToBase64 = async (file: File, maxSizeKB: number = 100): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // Resize image to max 400x400 while maintaining aspect ratio
+        const maxDimension = 400;
+        if (width > height) {
+          if (width > maxDimension) {
+            height = (height * maxDimension) / width;
+            width = maxDimension;
+          }
+        } else {
+          if (height > maxDimension) {
+            width = (width * maxDimension) / height;
+            height = maxDimension;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'));
+          return;
+        }
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Try different quality levels to get under maxSizeKB
+        let quality = 0.8;
+        let base64 = canvas.toDataURL('image/jpeg', quality);
+        
+        while (base64.length > maxSizeKB * 1024 * 1.37 && quality > 0.1) {
+          quality -= 0.1;
+          base64 = canvas.toDataURL('image/jpeg', quality);
+        }
+        
+        resolve(base64);
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
 };
 
 // Authentication functions
@@ -142,14 +196,13 @@ export const updateUserProfile = async (
 };
 
 export const uploadUserAvatar = async (userId: string, file: File): Promise<string> => {
-  const storageRef = ref(storage, `avatars/${userId}/${Date.now()}_${file.name}`);
-  await uploadBytes(storageRef, file);
-  const downloadURL = await getDownloadURL(storageRef);
+  // Compress and convert image to base64 (max 100KB to keep Firestore document small)
+  const base64Avatar = await compressImageToBase64(file, 100);
   
-  // Update user document
-  await updateDoc(doc(db, 'users', userId), { avatarUrl: downloadURL });
+  // Update user document with base64 avatar
+  await updateDoc(doc(db, 'users', userId), { avatarUrl: base64Avatar });
   
-  return downloadURL;
+  return base64Avatar;
 };
 
 // Presence functions
