@@ -40,7 +40,7 @@ const timestampToNumber = (timestamp: any): number => {
 };
 
 // Helper to compress and convert image to base64
-const compressImageToBase64 = async (file: File, maxSizeKB: number = 100): Promise<string> => {
+const compressImageToBase64 = async (file: File, maxSizeKB: number = 50): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -50,8 +50,8 @@ const compressImageToBase64 = async (file: File, maxSizeKB: number = 100): Promi
         let width = img.width;
         let height = img.height;
         
-        // Resize image to max 400x400 while maintaining aspect ratio
-        const maxDimension = 400;
+        // Resize image to max 200x200 while maintaining aspect ratio (smaller for better performance)
+        const maxDimension = 200;
         if (width > height) {
           if (width > maxDimension) {
             height = (height * maxDimension) / width;
@@ -76,12 +76,20 @@ const compressImageToBase64 = async (file: File, maxSizeKB: number = 100): Promi
         ctx.drawImage(img, 0, 0, width, height);
         
         // Try different quality levels to get under maxSizeKB
-        let quality = 0.8;
+        let quality = 0.7;
         let base64 = canvas.toDataURL('image/jpeg', quality);
         
+        // Reduce quality until size is acceptable
         while (base64.length > maxSizeKB * 1024 * 1.37 && quality > 0.1) {
           quality -= 0.1;
           base64 = canvas.toDataURL('image/jpeg', quality);
+        }
+        
+        // Final size check - reject if still too large
+        const finalSizeKB = base64.length / 1024 / 1.37;
+        if (finalSizeKB > maxSizeKB) {
+          reject(new Error(`Image too large (${finalSizeKB.toFixed(1)}KB). Please use a smaller image.`));
+          return;
         }
         
         resolve(base64);
@@ -196,8 +204,8 @@ export const updateUserProfile = async (
 };
 
 export const uploadUserAvatar = async (userId: string, file: File): Promise<string> => {
-  // Compress and convert image to base64 (max 100KB to keep Firestore document small)
-  const base64Avatar = await compressImageToBase64(file, 100);
+  // Compress and convert image to base64 (max 50KB to keep Firestore document small and performant)
+  const base64Avatar = await compressImageToBase64(file, 50);
   
   // Update user document with base64 avatar
   await updateDoc(doc(db, 'users', userId), { avatarUrl: base64Avatar });
