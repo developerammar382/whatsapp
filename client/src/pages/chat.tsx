@@ -50,7 +50,7 @@ export default function ChatPage({
   const activeConversation = conversations.find((c) => c.id === activeConversationId);
   const activeMessages = activeConversationId ? messages[activeConversationId] || [] : [];
 
-  const otherUserId = activeConversation?.participantIds.find((id) => id !== currentUser?.id);
+  const otherUserId = activeConversation?.participantIds.find((id) => id !== currentUser?.id) || undefined;
   const otherUserInfo = otherUserId ? getUserInfo(otherUserId) : null;
 
   return (

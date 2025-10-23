@@ -23,7 +23,7 @@ export function ChatInput({ onSendMessage, onTyping, disabled = false }: ChatInp
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
-    } else {
+    } else if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') {
       onTyping();
     }
   };

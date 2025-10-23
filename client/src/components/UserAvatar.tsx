@@ -20,11 +20,14 @@ export function UserAvatar({ userId, username, avatarUrl, size = 'md', showStatu
   };
 
   const initials = username
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+    ? username
+        .split(' ')
+        .map((n) => n[0])
+        .filter((n) => n)
+        .join('')
+        .toUpperCase()
+        .slice(0, 2) || '?'
+    : '?';
 
   return (
     <div className="relative inline-block">
